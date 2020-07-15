@@ -1,5 +1,6 @@
 import os
 import enum
+from Kafka import KafkaService
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
@@ -9,7 +10,7 @@ class Code(enum.Enum):
 
 class CgvMovieFinder:
     PROJECT_ROOT = os.path.abspath(os.path.dirname(__file__))
-    DRIVER_BIN = os.path.join(PROJECT_ROOT, "bin/chromedriver")
+    DRIVER_BIN = os.path.join(PROJECT_ROOT, "chromedriver")
     driver = webdriver.Chrome(executable_path=DRIVER_BIN)
     host = "http://www.cgv.co.kr/"
     areaListUrl = "reserve/show-times/"
@@ -92,21 +93,12 @@ class CgvMovieFinder:
                         seat = timetable.select_one('span').get_text().strip()
                     tuple = (time, seat)
                     tuples.append(tuple)
+
+                    kafkaService = KafkaService.KafkaService()
+                    kafkaService.publish(movieName)
+
                 return tuples
         return Code.NO_SUCH_MOVIE.value
-
-cgvMovieFiner = CgvMovieFinder()
-
-userLocation = '강남'
-userMovieName = '반도'
-
-print(cgvMovieFiner.getTheaterList())
-print(cgvMovieFiner.getTheaterMovies(userLocation))
-print(cgvMovieFiner.getTheaterMovies('이세상엔 없는 지점'))
-print(cgvMovieFiner.getMovieInfo(userLocation, userMovieName))
-print(cgvMovieFiner.getMovieInfo('이세상엔 없는 지점', userMovieName))
-print(cgvMovieFiner.getMovieInfo(userLocation, '이 세상엔 없는 영화'))
-print(cgvMovieFiner.getMovieInfo('이세상엔 없는 지점', '이 세상엔 없는 영화'))
 
 
 
