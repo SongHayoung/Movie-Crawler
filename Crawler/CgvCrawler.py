@@ -1,4 +1,5 @@
 import os
+import re
 import enum
 from Kafka import KafkaService
 from bs4 import BeautifulSoup
@@ -17,7 +18,7 @@ class CgvMovieFinder:
     theaterTimeTableUrl = "common/showtimes/iframeTheater.aspx?"
 
     def getSelector(self, html, selector):
-        return BeautifulSoup(html).body.select(selector)
+        return BeautifulSoup(html,"html.parser").body.select(selector)
 
     # 영화관 정보 리스트 row Data 검색
     def getTheaters(self):
@@ -39,6 +40,7 @@ class CgvMovieFinder:
     def getTheater(self, userLocation):
         areas = self.getTheaters()
         for area in areas:
+            print(area['title'], userLocation)
             if area['title'][3:] == userLocation or area['title'] == userLocation:
                 return area
         return Code.NO_SUCH_THEATER
@@ -66,7 +68,7 @@ class CgvMovieFinder:
     def getTheaterMovies(self, theater):
         movies = self.getMoviesInfo(theater)
         if (movies == Code.NO_SUCH_THEATER):
-            return Code.NO_SUCH_THEATER.value
+            return [Code.NO_SUCH_THEATER.value]
 
         ret = []
         for movie in movies:
@@ -78,11 +80,11 @@ class CgvMovieFinder:
     def getMovieInfo(self, theater, movieName):
         movies = self.getMoviesInfo(theater)
         if (movies == Code.NO_SUCH_THEATER):
-            return Code.NO_SUCH_THEATER.value
+            return [Code.NO_SUCH_THEATER.value]
 
         for movie in movies:
             if movie.select_one('div > div > a > strong').get_text().strip() == movieName:
-                tuples = []
+                timeTableList = []
                 timetables = movie.select('div > div.type-hall > div.info-timetable > ul > li')
                 for timetable in timetables:
                     try:
@@ -91,14 +93,14 @@ class CgvMovieFinder:
                     except AttributeError:
                         time = timetable.select_one('em').get_text().strip()
                         seat = timetable.select_one('span').get_text().strip()
-                    tuple = (time, seat)
-                    tuples.append(tuple)
+                    print(seat)
+                    timeTableList.append('시간은 ' + time + '이고 자리는 ' + re.findall("\d+",seat)[0] + '석 남아 있어요')
 
-                    kafkaService = KafkaService.KafkaService()
-                    kafkaService.publish(movieName)
+                kafkaService = KafkaService.KafkaService()
+                kafkaService.publish(movieName)
 
-                return tuples
-        return Code.NO_SUCH_MOVIE.value
+                return timeTableList
+        return [Code.NO_SUCH_MOVIE.value]
 
 
 

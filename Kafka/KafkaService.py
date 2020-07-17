@@ -17,3 +17,14 @@ class KafkaService:
                 rank[message.value] = 1
 
         return sorted(rank.items(), key=(lambda x:x[1]), reverse=True)[:val]
+
+    def getRank(self):
+        ranks = self.consume()
+        ranklist = []
+        i = 1
+        for rank in ranks:
+            print('rank : ', rank)
+            ranklist.append(str(i) + '등 ' + rank[0] + '\t검색 횟수 ' + str(rank[1]) + '번')
+            i+=1
+
+        return ranklist
